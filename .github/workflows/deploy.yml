@@ -1,0 +1,38 @@
+name: Deploy to Heroku
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Log in to Heroku Container Registry
+        run: heroku container:login
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+
+      - name: Build Docker image
+        run: docker build -t registry.heroku.com/${{ secrets.HEROKU_APP_NAME }}/web .
+
+      - name: Push Docker image to Heroku
+        run: docker push registry.heroku.com/${{ secrets.HEROKU_APP_NAME }}/web
+
+      - name: Release Docker image
+        run: heroku container:release web --app ${{ secrets.HEROKU_APP_NAME }}
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
